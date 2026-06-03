@@ -10,7 +10,7 @@
 ## Phases
 
 - [x] **Phase 1: State Machine & Pure Logic** — Add pausing/paused DAG status constants and pure state transition functions (completed 2026-06-03)
-- [ ] **Phase 2: Scheduler Pause Awareness** — Gate event processing, dispatch, and sweep for pausing/paused DAGs
+- [x] **Phase 2: Scheduler Pause Awareness** — Gate event processing, dispatch, and sweep for pausing/paused DAGs (completed 2026-06-03)
 - [ ] **Phase 3: Pause API + Resume API** — Go API methods for pausing and resuming DAG execution
 - [ ] **Phase 4: CLI Commands + Integration Tests** — CLI commands and full end-to-end integration tests
 
@@ -45,8 +45,8 @@ Plans:
   5. Scheduler unit tests with MemStore pass (TST-02 scope)
 **Plans**: 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — Add scheduler pause gates and auto-transition (SG-01, SG-02, SG-03, SG-04)
-- [ ] 02-02-PLAN.md — Write scheduler pause unit tests (TST-02)
+- [x] 02-01-PLAN.md — Add scheduler pause gates and auto-transition (SG-01, SG-02, SG-03, SG-04)
+- [x] 02-02-PLAN.md — Write scheduler pause unit tests (TST-02)
 
 ### Phase 3: Pause API + Resume API
 **Goal**: Callers can pause and resume DAG execution via the Go API with correct error handling, CAS semantics, and consistency with the existing Cancel pattern.
@@ -80,7 +80,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. State Machine & Pure Logic | 1/1 | Complete    | 2026-06-03 |
-| 2. Scheduler Pause Awareness | 0/2 | Not started | — |
+| 2. Scheduler Pause Awareness | 2/2 | Complete    | 2026-06-03 |
 | 3. Pause API + Resume API | 0/0 | Not started | — |
 | 4. CLI Commands + Integration Tests | 0/0 | Not started | — |
 
