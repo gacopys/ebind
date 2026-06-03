@@ -148,7 +148,9 @@ func (s *Scheduler) handleEvent(ctx context.Context, ev Event) error {
 	if err != nil {
 		return err
 	}
-	if state.Meta.Status == DAGStatusCanceled {
+	if state.Meta.Status == DAGStatusCanceled ||
+		state.Meta.Status == DAGStatusPausing ||
+		state.Meta.Status == DAGStatusPaused {
 		return nil
 	}
 	switch ev.Kind {
@@ -202,7 +204,9 @@ func (s *Scheduler) onStepAdded(ctx context.Context, state *DAGState) error {
 // enqueueReady resolves args and publishes task envelopes for each ready step.
 // If arg resolution returns cascade-skip, we mark the step skipped instead.
 func (s *Scheduler) enqueueReady(ctx context.Context, state *DAGState, ready []string) error {
-	if len(ready) == 0 || state.Meta.Status == DAGStatusCanceled {
+	if len(ready) == 0 || state.Meta.Status == DAGStatusCanceled ||
+		state.Meta.Status == DAGStatusPausing ||
+		state.Meta.Status == DAGStatusPaused {
 		return nil
 	}
 	results, statuses, err := s.snapshotUpstream(ctx, state)
