@@ -133,12 +133,20 @@ func (s *Scheduler) sweep(ctx context.Context) error {
 		case DAGStatusPaused:
 			// D-18: Skip non-terminal paused DAGs — zero CPU.
 			// D-17: Auto-finalize if all steps are terminal.
+			// Can't use state.Terminal() here: it returns (running,false)
+			// when meta is paused (by design). Check steps directly.
 			state, err := s.loadState(ctx, dag.ID)
 			if err != nil {
 				continue
 			}
-			terminalStatus, done := state.Terminal()
-			if !done {
+			allTerminal := true
+			for _, step := range state.Steps {
+				if !step.IsTerminal() {
+					allTerminal = false
+					break
+				}
+			}
+			if !allTerminal {
 				continue // not all terminal — skip (zero CPU per D-18)
 			}
 			meta, rev, err := s.wf.Store.GetMeta(ctx, dag.ID)
@@ -148,7 +156,14 @@ func (s *Scheduler) sweep(ctx context.Context) error {
 			if meta.Status != DAGStatusPaused {
 				continue
 			}
-			meta.Status = terminalStatus
+			// Derive final status from step outcomes.
+			meta.Status = DAGStatusDone
+			for _, step := range state.Steps {
+				if !step.Optional && (step.Status == StatusFailed || step.Status == StatusSkipped) {
+					meta.Status = DAGStatusFailed
+					break
+				}
+			}
 			_ = s.wf.Store.PutMeta(ctx, dag.ID, meta, rev)
 
 		default:
@@ -192,9 +207,14 @@ func (s *Scheduler) handleEvent(ctx context.Context, ev Event) error {
 	if err != nil {
 		return err
 	}
-	if state.Meta.Status == DAGStatusCanceled ||
-		state.Meta.Status == DAGStatusPausing ||
-		state.Meta.Status == DAGStatusPaused {
+	// Canceled and fully paused DAGs — gate ALL events (no processing).
+	if state.Meta.Status == DAGStatusCanceled || state.Meta.Status == DAGStatusPaused {
+		return nil
+	}
+	// Pausing DAGs: gate step-added events (no new work during drain), but
+	// allow completion events through so the pausing→paused auto-transition
+	// in onCompleted can fire when the last in-flight step finishes (D-13).
+	if state.Meta.Status == DAGStatusPausing && ev.Kind == EventStepAdded {
 		return nil
 	}
 	switch ev.Kind {
