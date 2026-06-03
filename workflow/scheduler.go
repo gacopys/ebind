@@ -222,6 +222,8 @@ func (s *Scheduler) handleEvent(ctx context.Context, ev Event) error {
 		return s.onCompleted(ctx, state, ev)
 	case EventStepAdded:
 		return s.onStepAdded(ctx, state)
+	case EventResumed:
+		return s.onStepAdded(ctx, state)
 	}
 	return nil
 }
