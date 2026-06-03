@@ -74,7 +74,11 @@ Plans:
   5. End-to-end integration tests with embedded NATS pass (TST-03 scope)
   6. Race condition tests for concurrent pause+resume, pause+cancel, and pause+step-completion pass (TST-04 scope)
   7. CLI command tests pass (TST-05 scope)
-**Plans**: 0/0
+ **Plans**: 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — CLI pause/resume commands + dag ls status filter update
+- [ ] 04-02-PLAN.md — E2E integration test + race condition tests
+- [ ] 04-03-PLAN.md — CLI command tests
 
 ---
 
@@ -85,7 +89,7 @@ Plans:
 | 1. State Machine & Pure Logic | 1/1 | Complete    | 2026-06-03 |
 | 2. Scheduler Pause Awareness | 2/2 | Complete    | 2026-06-03 |
 | 3. Pause API + Resume API | 2/2 | Complete    | 2026-06-03 |
-| 4. CLI Commands + Integration Tests | 0/0 | Not started | — |
+| 4. CLI Commands + Integration Tests | 0/3 | Not started | — |
 
 ---
 
