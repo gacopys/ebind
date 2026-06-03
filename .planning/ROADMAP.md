@@ -29,7 +29,9 @@
   4. `maybeFinalize` does not transition pausing or paused DAGs to any final state
   5. `Cancel()` transitions pausing and paused DAGs to canceled via CAS
   6. All pure unit tests pass with `-race` (TST-01 scope)
-**Plans**: 0/0
+**Plans**: 1 plan
+Plans:
+- [ ] 01-01-PLAN.md — Add state constants, pure pause/resume functions, update Cancel/maybeFinalize/Terminal, add PausedAt field, write unit tests
 
 ### Phase 2: Scheduler Pause Awareness
 **Goal**: Scheduler correctly gates event processing, step dispatch, and sweep recovery for pausing/paused DAGs without consuming CPU for idle paused DAGs.
@@ -74,7 +76,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. State Machine & Pure Logic | 0/0 | Not started | — |
+| 1. State Machine & Pure Logic | 0/1 | Planned | — |
 | 2. Scheduler Pause Awareness | 0/0 | Not started | — |
 | 3. Pause API + Resume API | 0/0 | Not started | — |
 | 4. CLI Commands + Integration Tests | 0/0 | Not started | — |
