@@ -12,7 +12,7 @@
 - [x] **Phase 1: State Machine & Pure Logic** — Add pausing/paused DAG status constants and pure state transition functions (completed 2026-06-03)
 - [x] **Phase 2: Scheduler Pause Awareness** — Gate event processing, dispatch, and sweep for pausing/paused DAGs (completed 2026-06-03)
 - [x] **Phase 3: Pause API + Resume API** — Go API methods for pausing and resuming DAG execution (completed 2026-06-03)
-- [ ] **Phase 4: CLI Commands + Integration Tests** — CLI commands and full end-to-end integration tests
+- [x] **Phase 4: CLI Commands + Integration Tests** — CLI commands and full end-to-end integration tests (completed 2026-06-03)
 
 ---
 
@@ -76,9 +76,9 @@ Plans:
   7. CLI command tests pass (TST-05 scope)
  **Plans**: 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — CLI pause/resume commands + dag ls status filter update
-- [ ] 04-02-PLAN.md — E2E integration test + race condition tests
-- [ ] 04-03-PLAN.md — CLI command tests
+- [x] 04-01-PLAN.md — CLI pause/resume commands + dag ls status filter update
+- [x] 04-02-PLAN.md — E2E integration test + race condition tests
+- [x] 04-03-PLAN.md — CLI command tests
 
 ---
 
@@ -89,7 +89,7 @@ Plans:
 | 1. State Machine & Pure Logic | 1/1 | Complete    | 2026-06-03 |
 | 2. Scheduler Pause Awareness | 2/2 | Complete    | 2026-06-03 |
 | 3. Pause API + Resume API | 2/2 | Complete    | 2026-06-03 |
-| 4. CLI Commands + Integration Tests | 0/3 | Not started | — |
+| 4. CLI Commands + Integration Tests | 3/3 | Complete    | 2026-06-03 |
 
 ---
 
