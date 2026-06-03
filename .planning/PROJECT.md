@@ -31,12 +31,19 @@ Durable, reliable workflow execution on a single dependency. A paused DAG should
 
 ### Active
 
-- [ ] Pause DAG execution — ongoing step finishes, new dispatches blocked, state becomes PAUSED, persisted across restarts
-- [ ] Resume DAG execution — PAUSED → ready steps dispatched, state becomes IN PROGRESS
-- [ ] API methods: DagPause(id), DagResume(id) on Workflow type
-- [ ] CLI commands: ebctl dag pause <id>, ebctl dag resume <id>
-- [ ] CLI display: dag ls shows PAUSED status in status column
-- [ ] Scheduler respects PAUSED state: no event processing, no CPU, no sweep re-enqueue
+_(None — milestone complete)_
+
+### v1 Delivered
+
+- ✓ Pause DAG execution — ongoing step finishes, new dispatches blocked, state becomes PAUSED — Phase 1-2
+- ✓ Resume DAG execution — PAUSED → ready steps dispatched, state becomes IN PROGRESS — Phase 3
+- ✓ API functions: Pause(ctx, wf, id), Resume(ctx, wf, id) on Workflow type — Phase 3
+- ✓ CLI commands: ebctl dag pause <id>, ebctl dag resume <id> — Phase 4
+- ✓ CLI display: dag ls shows PAUSING/PAUSED in status column — Phase 4
+- ✓ Scheduler respects PAUSED state: no event processing, no CPU, no sweep re-enqueue — Phase 2
+- ✓ Cancel transitions pausing/paused → canceled — Phase 1
+- ✓ State machine with DAGStatusPausing/Paused, HasInFlightSteps, CanPause, CanResume — Phase 1
+- ✓ Full E2E integration tests + race condition tests — Phase 4
 
 ### Out of Scope
 
@@ -75,13 +82,16 @@ On resume:
 | New DAG statuses: `pausing`, `paused` | Consistent with existing lowercase naming (running, done, failed, canceled) | ✓ Good (Phase 1) |
 | Pause blocks new dispatches, lets in-flight finish | Users want clean pause, not hard abort | ✓ Good (Phase 1) |
 | PAUSED survives restarts | Persisted in KV bucket via CAS | ✓ Good (Phase 1) |
-| Both API + CLI entry points | Library users and operators both need access | — Pending |
-| CLI status column for PAUSED | Simple, fits existing dag ls output | — Pending |
-| No auto-resume or pause timeout | Keep scope tight; can add later | — Pending |
+| Both API + CLI entry points | Library users and operators both need access | ✓ Good (Phase 3-4) |
+| CLI status column for PAUSED | Simple, fits existing dag ls output | ✓ Good (Phase 4) |
+| No auto-resume or pause timeout | Keep scope tight; can add later | ✓ Good (all phases) |
 | PausedAt audit field on DAGMeta | CLI display and audit trail | ✓ Good (Phase 1) |
 | Cancel transitions pausing/paused → canceled | Admin escape hatch works through pause state | ✓ Good (Phase 1) |
-| maybeFinalize leaves pausing/paused alone | Once paused, stays paused until explicit resume or cancel | ✓ Good (Phase 1) |
+| maybeFinalize leaves pausing/paused alone | Once paused, stays paused until explicit resume or cancel | ✓ Good (Phase 1), overridden for auto-finalize (Phase 2) |
 | Terminal() treats pausing/paused as non-terminal | Both keep the DAG alive | ✓ Good (Phase 1) |
+| Pause publishes event for scheduler dispatch | Goes through scheduler's normal serialized path | ✓ Good (Phase 3) |
+| Sweep auto-finalizes paused DAGs if terminal | Zero CPU for completed-but-paused DAGs | ✓ Good (Phase 2) |
+| CLI no confirmation for pause/resume | Pause/resume are reversible | ✓ Good (Phase 4) |
 
 ## Evolution
 
@@ -101,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-03 after Phase 1*
+*Last updated: 2026-06-03 after Phase 4 (milestone complete)*
