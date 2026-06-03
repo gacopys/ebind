@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 )
 
 // makeState builds a DAGState with the given steps for testing.
@@ -290,5 +291,157 @@ func TestState_MarkFailed_StoresErrorMessage(t *testing.T) {
 	}
 	if got.ErrorMessage != "dial tcp: connection refused" {
 		t.Errorf("ErrorMessage = %q, want full message", got.ErrorMessage)
+	}
+}
+
+func TestState_HasInFlightSteps_Running(t *testing.T) {
+	s := makeState(
+		StepRecord{StepID: "a", Status: StatusDone},
+		StepRecord{StepID: "b", Status: StatusRunning},
+	)
+	if !s.HasInFlightSteps() {
+		t.Error("HasInFlightSteps should be true when a step is running")
+	}
+}
+
+func TestState_HasInFlightSteps_NoneRunning(t *testing.T) {
+	s := makeState(
+		StepRecord{StepID: "a", Status: StatusDone},
+		StepRecord{StepID: "b", Status: StatusPending},
+	)
+	if s.HasInFlightSteps() {
+		t.Error("HasInFlightSteps should be false when no step is running")
+	}
+}
+
+func TestState_HasInFlightSteps_AllDone(t *testing.T) {
+	s := makeState(
+		StepRecord{StepID: "a", Status: StatusDone},
+		StepRecord{StepID: "b", Status: StatusFailed},
+	)
+	if s.HasInFlightSteps() {
+		t.Error("HasInFlightSteps should be false when all steps are terminal")
+	}
+}
+
+func TestState_CanPause_WhenRunning(t *testing.T) {
+	s := makeState(StepRecord{StepID: "a", Status: StatusPending})
+	// makeState defaults Meta.Status to DAGStatusRunning
+	if !s.CanPause() {
+		t.Error("CanPause should be true when DAG is running")
+	}
+}
+
+func TestState_CanPause_WhenPaused(t *testing.T) {
+	s := makeState(StepRecord{StepID: "a", Status: StatusPending})
+	s.Meta.Status = DAGStatusPaused
+	if s.CanPause() {
+		t.Error("CanPause should be false when DAG is paused")
+	}
+}
+
+func TestState_CanPause_WhenTerminal(t *testing.T) {
+	s := makeState(StepRecord{StepID: "a", Status: StatusPending})
+	s.Meta.Status = DAGStatusDone
+	if s.CanPause() {
+		t.Error("CanPause should be false when DAG is done")
+	}
+	s.Meta.Status = DAGStatusFailed
+	if s.CanPause() {
+		t.Error("CanPause should be false when DAG is failed")
+	}
+	s.Meta.Status = DAGStatusCanceled
+	if s.CanPause() {
+		t.Error("CanPause should be false when DAG is canceled")
+	}
+}
+
+func TestState_CanResume_WhenPaused(t *testing.T) {
+	s := makeState(StepRecord{StepID: "a", Status: StatusDone})
+	s.Meta.Status = DAGStatusPaused
+	if !s.CanResume() {
+		t.Error("CanResume should be true when DAG is paused")
+	}
+}
+
+func TestState_CanResume_WhenRunning(t *testing.T) {
+	s := makeState(StepRecord{StepID: "a", Status: StatusPending})
+	// makeState defaults Meta.Status to DAGStatusRunning
+	if s.CanResume() {
+		t.Error("CanResume should be false when DAG is running")
+	}
+}
+
+func TestState_CanResume_WhenTerminal(t *testing.T) {
+	s := makeState(StepRecord{StepID: "a", Status: StatusPending})
+	s.Meta.Status = DAGStatusDone
+	if s.CanResume() {
+		t.Error("CanResume should be false when DAG is done")
+	}
+}
+
+func TestState_Terminal_Paused_AllStepsTerminal(t *testing.T) {
+	s := makeState(
+		StepRecord{StepID: "a", Status: StatusDone},
+		StepRecord{StepID: "b", Status: StatusDone},
+	)
+	s.Meta.Status = DAGStatusPaused
+	status, done := s.Terminal()
+	if done {
+		t.Errorf("paused DAG should not be terminal; got done=%v", done)
+	}
+	if status != DAGStatusRunning {
+		t.Errorf("paused DAG should report as running; got status=%s", status)
+	}
+}
+
+func TestState_Terminal_Pausing_AllStepsTerminal(t *testing.T) {
+	s := makeState(
+		StepRecord{StepID: "a", Status: StatusDone},
+		StepRecord{StepID: "b", Status: StatusDone},
+	)
+	s.Meta.Status = DAGStatusPausing
+	status, done := s.Terminal()
+	if done {
+		t.Errorf("pausing DAG should not be terminal; got done=%v", done)
+	}
+	if status != DAGStatusRunning {
+		t.Errorf("pausing DAG should report as running; got status=%s", status)
+	}
+}
+
+func TestState_Terminal_Paused_SomeStepsRunning(t *testing.T) {
+	s := makeState(
+		StepRecord{StepID: "a", Status: StatusRunning},
+		StepRecord{StepID: "b", Status: StatusPending},
+	)
+	s.Meta.Status = DAGStatusPaused
+	status, done := s.Terminal()
+	if done {
+		t.Errorf("paused DAG with running steps should not be terminal; got done=%v", done)
+	}
+	if status != DAGStatusRunning {
+		t.Errorf("paused DAG should report as running; got status=%s", status)
+	}
+}
+
+func TestState_PausedAt_JSON(t *testing.T) {
+	now := time.Now().UTC().Truncate(time.Second)
+	meta := DAGMeta{
+		ID:        "test-dag",
+		Status:    DAGStatusPaused,
+		CreatedAt: time.Now().UTC(),
+		PausedAt:  now,
+	}
+	data, err := json.Marshal(meta)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded DAGMeta
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if !decoded.PausedAt.Equal(now) {
+		t.Errorf("PausedAt round-trip: got %v, want %v", decoded.PausedAt, now)
 	}
 }
