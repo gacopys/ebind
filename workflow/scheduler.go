@@ -98,18 +98,62 @@ func (s *Scheduler) sweep(ctx context.Context) error {
 		return err
 	}
 	for _, dag := range dags {
-		if dag.Status != DAGStatusRunning {
-			continue
+		switch dag.Status {
+		case DAGStatusRunning:
+			state, err := s.loadState(ctx, dag.ID)
+			if err != nil {
+				continue
+			}
+			s.mu.Lock()
+			ready := state.ReadyToRun()
+			err = s.enqueueReady(ctx, state, ready)
+			s.mu.Unlock()
+			_ = err
+
+		case DAGStatusPausing:
+			// D-16: Recovery for leader crash while pausing — transition to paused.
+			state, err := s.loadState(ctx, dag.ID)
+			if err != nil {
+				continue
+			}
+			if state.HasInFlightSteps() {
+				continue // still draining; do nothing
+			}
+			meta, rev, err := s.wf.Store.GetMeta(ctx, dag.ID)
+			if err != nil {
+				continue
+			}
+			if meta.Status != DAGStatusPausing {
+				continue // concurrent writer changed it
+			}
+			meta.Status = DAGStatusPaused
+			meta.PausedAt = time.Now().UTC()
+			_ = s.wf.Store.PutMeta(ctx, dag.ID, meta, rev) // CAS; benign fail on race
+
+		case DAGStatusPaused:
+			// D-18: Skip non-terminal paused DAGs — zero CPU.
+			// D-17: Auto-finalize if all steps are terminal.
+			state, err := s.loadState(ctx, dag.ID)
+			if err != nil {
+				continue
+			}
+			terminalStatus, done := state.Terminal()
+			if !done {
+				continue // not all terminal — skip (zero CPU per D-18)
+			}
+			meta, rev, err := s.wf.Store.GetMeta(ctx, dag.ID)
+			if err != nil {
+				continue
+			}
+			if meta.Status != DAGStatusPaused {
+				continue
+			}
+			meta.Status = terminalStatus
+			_ = s.wf.Store.PutMeta(ctx, dag.ID, meta, rev)
+
+		default:
+			continue // done/failed/canceled — existing behavior
 		}
-		state, err := s.loadState(ctx, dag.ID)
-		if err != nil {
-			continue
-		}
-		s.mu.Lock()
-		ready := state.ReadyToRun()
-		err = s.enqueueReady(ctx, state, ready)
-		s.mu.Unlock()
-		_ = err
 	}
 	return nil
 }
@@ -192,6 +236,28 @@ func (s *Scheduler) onCompleted(ctx context.Context, state *DAGState, ev Event) 
 	if err := s.enqueueReady(ctx, state, newlyReady); err != nil {
 		return err
 	}
+
+	// ----- pausing→paused auto-transition (SG-04) -----
+	if state.Meta.Status == DAGStatusPausing && !state.HasInFlightSteps() {
+		meta, rev, err := s.wf.Store.GetMeta(ctx, state.Meta.ID)
+		if err != nil {
+			return err
+		}
+		if meta.Status != DAGStatusPausing {
+			return nil // concurrent Resume or Cancel changed it; benign (D-14)
+		}
+		meta.Status = DAGStatusPaused
+		meta.PausedAt = time.Now().UTC()
+		if err := s.wf.Store.PutMeta(ctx, state.Meta.ID, meta, rev); err != nil {
+			if errors.Is(err, ErrStaleRevision) {
+				return nil // benign CAS race (Resume won) — sweep handles it
+			}
+			return err
+		}
+		// DAG is now paused — do NOT call maybeFinalize (D-13: paused is not terminal)
+		return nil
+	}
+	// ----- end pausing→paused -----
 
 	// Finalize DAG if all terminal.
 	return s.maybeFinalize(ctx, state)
