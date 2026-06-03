@@ -53,11 +53,14 @@ Plans:
 **Depends on**: Phase 1, Phase 2
 **Requirements**: API-01, API-02, API-03, API-04
 **Success Criteria** (what must be TRUE):
-  1. `Workflow.DagPause(ctx, dagID)` CAS-transitions running→pausing (or running→paused if zero in-flight steps) and returns nil (API-01)
-  2. `Workflow.DagResume(ctx, dagID)` CAS-transitions paused→running, re-enqueues ready steps, and returns nil (API-02)
-  3. Both functions return descriptive errors for invalid transitions — e.g., pause on canceled DAG, resume on running DAG (API-03)
-  4. Both functions use KV CAS with retry (5 attempts, `ErrStaleRevision` on exhaustion), consistent with existing `Cancel()` pattern (API-04)
-**Plans**: 0/0
+   1. `Pause(ctx, wf, dagID)` CAS-transitions running→pausing (or running→paused if zero in-flight steps) and returns nil (API-01)
+   2. `Resume(ctx, wf, dagID)` CAS-transitions paused→running, publishes EventResumed for scheduler to re-enqueue ready steps, and returns nil (API-02)
+   3. Both functions return descriptive errors for invalid transitions — e.g., pause on canceled DAG, resume on running DAG (API-03)
+   4. Both functions use KV CAS with retry (5 attempts, `ErrStaleRevision` on exhaustion), consistent with existing `Cancel()` pattern (API-04)
+**Plans**: 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — Implement Pause/Resume API functions, sentinel errors, EventResumed, and scheduler handler
+- [ ] 03-02-PLAN.md — Write comprehensive unit tests for Pause/Resume API
 
 ### Phase 4: CLI Commands + Integration Tests
 **Goal**: Operators can pause and resume DAGs from the CLI with clear output; full end-to-end system passes integration and race-condition tests.
@@ -81,7 +84,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. State Machine & Pure Logic | 1/1 | Complete    | 2026-06-03 |
 | 2. Scheduler Pause Awareness | 2/2 | Complete    | 2026-06-03 |
-| 3. Pause API + Resume API | 0/0 | Not started | — |
+| 3. Pause API + Resume API | 0/2 | **Planned** | — |
 | 4. CLI Commands + Integration Tests | 0/0 | Not started | — |
 
 ---
