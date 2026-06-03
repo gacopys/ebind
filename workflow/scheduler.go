@@ -305,7 +305,7 @@ func (s *Scheduler) maybeFinalize(ctx context.Context, state *DAGState) error {
 	if err != nil {
 		return err
 	}
-	if meta.Status == DAGStatusCanceled {
+	if meta.Status == DAGStatusCanceled || meta.Status == DAGStatusPausing || meta.Status == DAGStatusPaused {
 		return nil
 	}
 	if meta.Status == status {
