@@ -11,7 +11,7 @@
 
 - [x] **Phase 1: State Machine & Pure Logic** — Add pausing/paused DAG status constants and pure state transition functions (completed 2026-06-03)
 - [x] **Phase 2: Scheduler Pause Awareness** — Gate event processing, dispatch, and sweep for pausing/paused DAGs (completed 2026-06-03)
-- [ ] **Phase 3: Pause API + Resume API** — Go API methods for pausing and resuming DAG execution
+- [x] **Phase 3: Pause API + Resume API** — Go API methods for pausing and resuming DAG execution (completed 2026-06-03)
 - [ ] **Phase 4: CLI Commands + Integration Tests** — CLI commands and full end-to-end integration tests
 
 ---
@@ -59,8 +59,8 @@ Plans:
    4. Both functions use KV CAS with retry (5 attempts, `ErrStaleRevision` on exhaustion), consistent with existing `Cancel()` pattern (API-04)
 **Plans**: 2 plans
 Plans:
-- [ ] 03-01-PLAN.md — Implement Pause/Resume API functions, sentinel errors, EventResumed, and scheduler handler
-- [ ] 03-02-PLAN.md — Write comprehensive unit tests for Pause/Resume API
+- [x] 03-01-PLAN.md — Implement Pause/Resume API functions, sentinel errors, EventResumed, and scheduler handler
+- [x] 03-02-PLAN.md — Write comprehensive unit tests for Pause/Resume API
 
 ### Phase 4: CLI Commands + Integration Tests
 **Goal**: Operators can pause and resume DAGs from the CLI with clear output; full end-to-end system passes integration and race-condition tests.
@@ -84,7 +84,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. State Machine & Pure Logic | 1/1 | Complete    | 2026-06-03 |
 | 2. Scheduler Pause Awareness | 2/2 | Complete    | 2026-06-03 |
-| 3. Pause API + Resume API | 0/2 | **Planned** | — |
+| 3. Pause API + Resume API | 2/2 | Complete    | 2026-06-03 |
 | 4. CLI Commands + Integration Tests | 0/0 | Not started | — |
 
 ---
