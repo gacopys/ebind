@@ -72,12 +72,16 @@ On resume:
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| New DAG statuses: `pausing`, `paused` | Consistent with existing lowercase naming (running, done, failed, canceled) | — Pending |
-| Pause blocks new dispatches, lets in-flight finish | Users want clean pause, not hard abort | — Pending |
-| PAUSED survives restarts | Persisted in KV bucket via CAS | — Pending |
+| New DAG statuses: `pausing`, `paused` | Consistent with existing lowercase naming (running, done, failed, canceled) | ✓ Good (Phase 1) |
+| Pause blocks new dispatches, lets in-flight finish | Users want clean pause, not hard abort | ✓ Good (Phase 1) |
+| PAUSED survives restarts | Persisted in KV bucket via CAS | ✓ Good (Phase 1) |
 | Both API + CLI entry points | Library users and operators both need access | — Pending |
 | CLI status column for PAUSED | Simple, fits existing dag ls output | — Pending |
 | No auto-resume or pause timeout | Keep scope tight; can add later | — Pending |
+| PausedAt audit field on DAGMeta | CLI display and audit trail | ✓ Good (Phase 1) |
+| Cancel transitions pausing/paused → canceled | Admin escape hatch works through pause state | ✓ Good (Phase 1) |
+| maybeFinalize leaves pausing/paused alone | Once paused, stays paused until explicit resume or cancel | ✓ Good (Phase 1) |
+| Terminal() treats pausing/paused as non-terminal | Both keep the DAG alive | ✓ Good (Phase 1) |
 
 ## Evolution
 
@@ -97,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-03 after initialization*
+*Last updated: 2026-06-03 after Phase 1*
