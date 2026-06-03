@@ -1,0 +1,100 @@
+# ebind
+
+## What This Is
+
+ebind is a Go library that provides a task queue and DAG workflow engine over NATS JetStream. It enables durable, multi-step workflows with step dependencies, retries, and dynamic step addition — with no external dependencies beyond NATS itself. Applications embed ebind in-process for production-grade orchestration without separate infrastructure.
+
+## Core Value
+
+Durable, reliable workflow execution on a single dependency. A paused DAG should stay paused across process restarts, with no CPU consumed, and resume exactly where it left off.
+
+## Requirements
+
+### Validated
+
+- ✓ Task queue with reflection-based function dispatch — existing
+- ✓ DAG workflow engine with step dependencies (After/AfterAny) — existing
+- ✓ DAG submission, cancellation, and deletion — existing
+- ✓ Dynamic step addition via workflow context — existing
+- ✓ Step retry policies with exponential backoff — existing
+- ✓ Cascade skipping on upstream failure — existing
+- ✓ Await[T] for subscribing to step results — existing
+- ✓ DAG state persistence in NATS KV bucket — existing
+- ✓ Event-driven scheduler with CAS-based state transitions — existing
+- ✓ Leader election for scheduler failover — existing
+- ✓ CLI (ebctl) for dag inspection (ls/get/tree/step/cancel/rm) — existing
+- ✓ DLQ management via ebctl — existing
+- ✓ Embedded NATS (single-node and 3-node cluster) — existing
+- ✓ Middleware chain for worker customization — existing
+- ✓ Placement/targeted delivery for step placement — existing
+- ✓ Error kind and message persistence on step failure — existing
+
+### Active
+
+- [ ] Pause DAG execution — ongoing step finishes, new dispatches blocked, state becomes PAUSED, persisted across restarts
+- [ ] Resume DAG execution — PAUSED → ready steps dispatched, state becomes IN PROGRESS
+- [ ] API methods: DagPause(id), DagResume(id) on Workflow type
+- [ ] CLI commands: ebctl dag pause <id>, ebctl dag resume <id>
+- [ ] CLI display: dag ls shows PAUSED status in status column
+- [ ] Scheduler respects PAUSED state: no event processing, no CPU, no sweep re-enqueue
+
+### Out of Scope
+
+- Time-based auto-resume (e.g., "pause for 1h then auto-resume") — simple manual pause/resume is sufficient
+- Pause timeout / auto-cancel on prolonged pause — not needed for initial feature
+- Canceling in-flight tasks on pause — in-flight tasks complete naturally
+- Pause from within a handler (workflow context) — only via explicit API/CLI call
+- UI dashboard — this is a Go library with a CLI, not a web service
+
+## Context
+
+The ebind codebase already has a mature DAG engine with states: running, done, failed, canceled. The pause/resume feature needs two new DAG-level states: `pausing` (transient, while in-flight step finishes) and `paused` (persisted, dormant, no CPU consumed). Step-level states remain unchanged — pending steps stay pending while paused.
+
+The scheduler currently processes events and dispatches ready steps. When paused, the scheduler must:
+- Allow in-flight steps to complete naturally
+- Block new step dispatches
+- Skip sweep re-enqueue for paused DAGs
+- Persist the PAUSED state in KV (survives restarts)
+
+On resume:
+- Re-evaluate which steps are ready (dependencies already satisfied)
+- Dispatch and execute next steps normally
+- Transition DAG status back to IN PROGRESS
+
+## Constraints
+
+- **Compatibility**: New DAG statuses must follow existing lowercase naming convention (`pausing`, `paused`)
+- **Compatibility**: Pause must use KV CAS for state transitions, consistent with existing Cancel() pattern
+- **Compatibility**: PAUSED state must be backward-compatible with existing stores — old DAGs without pause support continue working
+- **Behavior**: Paused DAGs must consume no scheduler CPU resources beyond the status check in the event loop
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| New DAG statuses: `pausing`, `paused` | Consistent with existing lowercase naming (running, done, failed, canceled) | — Pending |
+| Pause blocks new dispatches, lets in-flight finish | Users want clean pause, not hard abort | — Pending |
+| PAUSED survives restarts | Persisted in KV bucket via CAS | — Pending |
+| Both API + CLI entry points | Library users and operators both need access | — Pending |
+| CLI status column for PAUSED | Simple, fits existing dag ls output | — Pending |
+| No auto-resume or pause timeout | Keep scope tight; can add later | — Pending |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
+---
+*Last updated: 2026-06-03 after initialization*
