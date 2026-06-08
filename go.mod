@@ -1,4 +1,4 @@
-module github.com/f1bonacc1/ebind
+module github.com/gacopys/ebind
 
 go 1.26.1
 
