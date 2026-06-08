@@ -28,22 +28,19 @@ Durable, reliable workflow execution on a single dependency. A paused DAG should
 - ✓ Middleware chain for worker customization — existing
 - ✓ Placement/targeted delivery for step placement — existing
 - ✓ Error kind and message persistence on step failure — existing
+- ✓ Pause DAG execution — ongoing step finishes, new dispatches blocked, state becomes PAUSED — v1.0
+- ✓ Resume DAG execution — PAUSED → ready steps dispatched, state becomes IN PROGRESS — v1.0
+- ✓ API functions: Pause(ctx, wf, id), Resume(ctx, wf, id) on Workflow type — v1.0
+- ✓ CLI commands: ebctl dag pause &lt;id&gt;, ebctl dag resume &lt;id&gt; — v1.0
+- ✓ CLI display: dag ls shows PAUSING/PAUSED in status column — v1.0
+- ✓ Scheduler respects PAUSED state: no event processing, no CPU, no sweep re-enqueue — v1.0
+- ✓ Cancel transitions pausing/paused → canceled — v1.0
+- ✓ State machine with DAGStatusPausing/Paused, HasInFlightSteps, CanPause, CanResume — v1.0
+- ✓ Full E2E integration tests + race condition tests — v1.0
 
 ### Active
 
-_(None — milestone complete)_
-
-### v1 Delivered
-
-- ✓ Pause DAG execution — ongoing step finishes, new dispatches blocked, state becomes PAUSED — Phase 1-2
-- ✓ Resume DAG execution — PAUSED → ready steps dispatched, state becomes IN PROGRESS — Phase 3
-- ✓ API functions: Pause(ctx, wf, id), Resume(ctx, wf, id) on Workflow type — Phase 3
-- ✓ CLI commands: ebctl dag pause <id>, ebctl dag resume <id> — Phase 4
-- ✓ CLI display: dag ls shows PAUSING/PAUSED in status column — Phase 4
-- ✓ Scheduler respects PAUSED state: no event processing, no CPU, no sweep re-enqueue — Phase 2
-- ✓ Cancel transitions pausing/paused → canceled — Phase 1
-- ✓ State machine with DAGStatusPausing/Paused, HasInFlightSteps, CanPause, CanResume — Phase 1
-- ✓ Full E2E integration tests + race condition tests — Phase 4
+_(New features for next milestone — TBD)_
 
 ### Out of Scope
 
@@ -55,18 +52,25 @@ _(None — milestone complete)_
 
 ## Context
 
-The ebind codebase already has a mature DAG engine with states: running, done, failed, canceled. The pause/resume feature needs two new DAG-level states: `pausing` (transient, while in-flight step finishes) and `paused` (persisted, dormant, no CPU consumed). Step-level states remain unchanged — pending steps stay pending while paused.
+**Shipped v1.0 (2026-06-03):** Pause/Resume DAG Execution — 4 phases, 8 plans, 23 requirements — all delivered in a single session.
 
-The scheduler currently processes events and dispatches ready steps. When paused, the scheduler must:
-- Allow in-flight steps to complete naturally
-- Block new step dispatches
-- Skip sweep re-enqueue for paused DAGs
-- Persist the PAUSED state in KV (survives restarts)
+The ebind codebase has a mature DAG engine with states: running, done, failed, canceled, pausing, paused. The pause/resume feature adds two new DAG-level states: `pausing` (transient, while in-flight step finishes) and `paused` (persisted, dormant, no CPU consumed). Step-level states remain unchanged — pending steps stay pending while paused.
 
-On resume:
-- Re-evaluate which steps are ready (dependencies already satisfied)
-- Dispatch and execute next steps normally
-- Transition DAG status back to IN PROGRESS
+The scheduler gates event processing, step dispatch, and sweep recovery for pausing/paused DAGs. Paused DAGs consume zero scheduler CPU beyond the status check in the event loop. The PAUSED state is persisted in KV via CAS, surviving restarts.
+
+On resume, ready steps are re-evaluated and dispatched, and the DAG transitions back to running.
+
+**Next area:** TBD — project open for new feature planning.
+
+## Next Milestone Goals
+
+The next milestone will define ebind's next development cycle. Potential areas (not committed):
+- Security hardening / audit
+- Observability improvements (metrics, tracing)
+- Additional API features
+- Performance tuning
+
+*Define via `/gsd-new-milestone`*
 
 ## Constraints
 
@@ -111,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-03 after Phase 4 (milestone complete)*
+*Last updated: 2026-06-08 after v1.0 milestone completion*
